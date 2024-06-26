@@ -4,13 +4,13 @@ import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
-  measurementId: process.env.FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyCFnzViSGI36LM8UKIIbqenit0th4R97kA",
+  authDomain: "voltaic-charter-393405.firebaseapp.com",
+  projectId: "voltaic-charter-393405",
+  storageBucket: "voltaic-charter-393405.appspot.com",
+  messagingSenderId: "900540364932",
+  appId: "1:900540364932:web:70a47472256ba8112f2ad1",
+  measurementId: "G-D364BKDCRL"
 };
 
 const app = initializeApp(firebaseConfig);
