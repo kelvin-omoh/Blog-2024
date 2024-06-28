@@ -2,6 +2,8 @@ import React, { useEffect } from "react";
 import FontAwesome from "react-fontawesome";
 import { Link } from "react-router-dom";
 import { excerpt } from "../utility";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 const BlogSection = ({
   id,
@@ -36,7 +38,9 @@ const BlogSection = ({
             </span>
           </div>
           <div className="short-description text-start">
-            {excerpt(description, 120)}
+            <ReactQuill value={excerpt(description, 300)} readOnly={true} theme="bubble" />
+
+
           </div>
           <Link to={`/detail/${id}`}>
             <button className="btn btn-read">Read More</button>

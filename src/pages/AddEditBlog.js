@@ -13,6 +13,8 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
+import ReactQuill from 'react-quill';  // Import React Quill
+import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 
 const initialState = {
   title: "",
@@ -20,8 +22,6 @@ const initialState = {
   trending: "no",
   category: "",
   description: "",
-  comments: [],
-  likes: []
 };
 
 const categoryOption = [
@@ -146,6 +146,10 @@ const AddEditBlog = ({ user, setActive }) => {
     navigate("/");
   };
 
+  const handleDescriptionChange = (value) => {
+    setForm({ ...form, description: value }); // Update form state with new description
+  };
+
   return (
     <div className="container-fluid mb-4">
       <div className="container">
@@ -216,12 +220,11 @@ const AddEditBlog = ({ user, setActive }) => {
                 </select>
               </div>
               <div className="col-12 py-3">
-                <textarea
-                  className="form-control description-box"
-                  placeholder="Description"
+                <ReactQuill
+                  theme="snow"
                   value={description}
-                  name="description"
-                  onChange={handleChange}
+                  onChange={handleDescriptionChange}
+                  className=""
                 />
               </div>
               <div className="mb-3">

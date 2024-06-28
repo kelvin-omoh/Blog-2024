@@ -3,7 +3,7 @@ import Card from "./Card";
 
 const RelatedBlog = ({ blogs, id }) => {
   return (
-    <div>
+    <div key={id}>
       <div className="blog-heading text-start pt-3 py-2 mb-4">
         Related Blogs
       </div>

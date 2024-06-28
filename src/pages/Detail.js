@@ -1,3 +1,6 @@
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
   collection,
   doc,
@@ -12,17 +15,16 @@ import {
   where,
 } from "firebase/firestore";
 import { isEmpty } from "lodash";
-import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { toast } from "react-toastify";
 import CommentBox from "../components/CommentBox";
 import Like from "../components/Like";
 import FeatureBlogs from "../components/FeatureBlogs";
 import RelatedBlog from "../components/RelatedBlog";
 import Tags from "../components/Tags";
 import UserComments from "../components/UserComments";
-import { db } from "../firebase";
 import Spinner from "../components/Spinner";
+import { db } from "../firebase";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 const Detail = ({ setActive, user }) => {
   const userId = user?.uid;
@@ -32,100 +34,108 @@ const Detail = ({ setActive, user }) => {
   const [blogs, setBlogs] = useState([]);
   const [tags, setTags] = useState([]);
   const [comments, setComments] = useState([]);
-  let [likes, setLikes] = useState([]);
+  const [likes, setLikes] = useState([]);
   const [userComment, setUserComment] = useState("");
   const [relatedBlogs, setRelatedBlogs] = useState([]);
 
   useEffect(() => {
-    const getRecentBlogs = async () => {
+    const fetchRecentBlogs = async () => {
       const blogRef = collection(db, "blogs");
-      const recentBlogs = query(
-        blogRef,
-        orderBy("timestamp", "desc"),
-        limit(5)
-      );
-      const docSnapshot = await getDocs(recentBlogs);
+      const recentBlogsQuery = query(blogRef, orderBy("timestamp", "desc"), limit(5));
+      const docSnapshot = await getDocs(recentBlogsQuery);
       setBlogs(docSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     };
 
-    getRecentBlogs();
+    fetchRecentBlogs();
   }, []);
 
   useEffect(() => {
-    id && getBlogDetail();
+    if (id) {
+      fetchBlogDetail();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (loading) {
-    return <Spinner />;
-  }
-
-  const getBlogDetail = async () => {
+  const fetchBlogDetail = async () => {
     setLoading(true);
-    const blogRef = collection(db, "blogs");
     const docRef = doc(db, "blogs", id);
     const blogDetail = await getDoc(docRef);
-    const blogs = await getDocs(blogRef);
-    let tags = [];
-    blogs.docs.map((doc) => tags.push(...doc.get("tags")));
-    let uniqueTags = [...new Set(tags)];
-    setTags(uniqueTags);
-    setBlog(blogDetail.data());
-    const relatedBlogsQuery = query(
-      blogRef,
-      where("tags", "array-contains-any", blogDetail.data().tags, limit(3))
-    );
-    setComments(blogDetail.data().comments ? blogDetail.data().comments : []);
-    setLikes(blogDetail.data().likes ? blogDetail.data().likes : []);
-    const relatedBlogSnapshot = await getDocs(relatedBlogsQuery);
-    const relatedBlogs = [];
-    relatedBlogSnapshot.forEach((doc) => {
-      relatedBlogs.push({ id: doc.id, ...doc.data() });
-    });
-    setRelatedBlogs(relatedBlogs);
-    setActive(null);
+    const blogData = blogDetail.data();
+
+    if (blogData) {
+      const blogRef = collection(db, "blogs");
+      const allBlogsSnapshot = await getDocs(blogRef);
+      const tagsArray = allBlogsSnapshot.docs.flatMap((doc) => doc.get("tags"));
+      const uniqueTags = [...new Set(tagsArray)];
+
+      const relatedBlogsQuery = query(
+        blogRef,
+        where("tags", "array-contains-any", blogData.tags),
+        limit(3)
+      );
+      const relatedBlogSnapshot = await getDocs(relatedBlogsQuery);
+      const relatedBlogsData = relatedBlogSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+      setBlog(blogData);
+      setTags(uniqueTags);
+      setComments(blogData.comments || []);
+      setLikes(blogData.likes || []);
+      setRelatedBlogs(relatedBlogsData);
+      setActive(null);
+    }
+
     setLoading(false);
   };
 
   const handleComment = async (e) => {
     e.preventDefault();
-    comments.push({
+
+    const newComment = {
       createdAt: Timestamp.fromDate(new Date()),
       userId,
       name: user?.displayName,
       body: userComment,
-    });
-    toast.success("Comment posted successfully");
+    };
+
+    const updatedComments = [...comments, newComment];
+    setComments(updatedComments);
+
     await updateDoc(doc(db, "blogs", id), {
       ...blog,
-      comments,
+      comments: updatedComments,
       timestamp: serverTimestamp(),
     });
-    setComments(comments);
+
+    toast.success("Comment posted successfully");
     setUserComment("");
   };
 
   const handleLike = async () => {
     if (userId) {
-      if (blog?.likes) {
-        const index = likes.findIndex((id) => id === userId);
-        if (index === -1) {
-          likes.push(userId);
-          setLikes([...new Set(likes)]);
-        } else {
-          likes = likes.filter((id) => id !== userId);
-          setLikes(likes);
-        }
+      const updatedLikes = blog?.likes ? [...blog.likes] : [];
+      const userIndex = updatedLikes.findIndex((like) => like === userId);
+
+      if (userIndex === -1) {
+        updatedLikes.push(userId);
+      } else {
+        updatedLikes.splice(userIndex, 1);
       }
+
+      setLikes(updatedLikes);
+
       await updateDoc(doc(db, "blogs", id), {
         ...blog,
-        likes,
+        likes: updatedLikes,
         timestamp: serverTimestamp(),
       });
     }
   };
 
-  console.log("relatedBlogs", relatedBlogs);
+  if (loading) {
+    return <Spinner />;
+  }
+
+
   return (
     <div className="single">
       <div
@@ -147,7 +157,11 @@ const Detail = ({ setActive, user }) => {
                 {blog?.timestamp.toDate().toDateString()}
                 <Like handleLike={handleLike} likes={likes} userId={userId} />
               </span>
-              <p className="text-start">{blog?.description}</p>
+              <div
+                className="preview"
+              >
+                <ReactQuill value={blog?.description} readOnly={true} theme="bubble" />
+              </div>
               <div className="text-start">
                 <Tags tags={blog?.tags} />
               </div>
